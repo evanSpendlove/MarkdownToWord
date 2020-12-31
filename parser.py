@@ -10,9 +10,33 @@ class MarkdownParser:
         self.document = doc
         self.style = Style()
 
-    def parseWords(self, line):
-        if '*' not in line:
-            return self.document.add_paragraph(line)
+    def applyStyles(self, tabs, runs):
+        para = self.document.add_paragraph('')
+        if tabs > 0:
+            para = self.style.setIndent(para, tabs)
+        for r in runs:
+            content, style = r[1], r[0]
+            run = para.add_run(content)
+            self.style.styleRun(run, style)
+        return para
+
+    def parseTabs(self, line):
+        print(line)
+        tabs = 0
+        if '\t' in line:
+            print('Tab found')
+            while line[tabs] == '\t': tabs += 1
+        if line[0] == ' ':
+            print('Space found')
+            count = 0
+            while line[count] == ' ': count += 1
+            tabs += count // 4
+        print(tabs)
+        return tabs
+
+    def parseWords(self, line, tabs):
+        # if '*' not in line:
+            # return self.document.add_paragraph(line)
         # Parse bold
         runs = []
         start, end = 0, 0
@@ -28,31 +52,26 @@ class MarkdownParser:
                         runs.append(("BOLD", line[start:end-1]))
                     start = end + 1
             end += 1
+        runs.append(("NONE", line[start:end]))
         print(runs)
-        para = self.document.add_paragraph('')
-        for r in runs:
-            content, style = r[1], r[0]
-            if style == "BOLD":
-                para.add_run(content).bold = True
-            else:
-                para.add_run(content)
-        return para
+        return self.applyStyles(tabs, runs)
 
-    def parseHeader(self, line):
+    def parseHeader(self, line, tabs):
         level = 0
         while line[level] == '#': level += 1
-        para = self.parseWords(line[level+1:])
+        para = self.parseWords(line[level+1:], tabs)
         return self.style.setHeader(para, level)
 
-    def parseList(self, line):
+    def parseList(self, line, tabs):
         line = line[line.index('-')+2:]
-        para = self.document.add_paragraph(line)
+        para = self.parseWords(line, tabs)
         return self.style.setList(para)
 
     def parseLine(self, line):
-        if line[0] == '#':
-            return self.parseHeader(line)
-        if line[0] == '-':
-            return self.parseList(line)
+        tabs = self.parseTabs(line)
+        if '# ' in line:
+            return self.parseHeader(line, tabs)
+        if '- ' in line:
+            return self.parseList(line, tabs)
         # otherwise, regular text object
-        return self.parseWords(line)
+        return self.parseWords(line, tabs)

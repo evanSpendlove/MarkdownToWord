@@ -11,6 +11,7 @@ with open('md_test.md', 'r') as f:
     for l in lines:
         md.parseLine(l)
     doc = md.document
+    # paragraph = doc.add_paragraph("List 1", "List Bullet 2")
     paras = doc.paragraphs
     for p in paras:
         print(p.text)
