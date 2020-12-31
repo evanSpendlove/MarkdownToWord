@@ -2,6 +2,10 @@
 # Styling rules object
 # Parser for markdown
 # Main script
+
+# TODO(evanSpendlove): Add parsing for italics
+# TODO(evanSpendlove): Add parsing for hyperlinks
+
 from docx import Document
 from styles import *
 
@@ -12,32 +16,23 @@ class MarkdownParser:
 
     def applyStyles(self, tabs, runs):
         para = self.document.add_paragraph('')
-        if tabs > 0:
-            para = self.style.setIndent(para, tabs)
+        para = self.style.setIndent(para, tabs)
         for r in runs:
-            content, style = r[1], r[0]
+            style, content = r[0], r[1]
             run = para.add_run(content)
             self.style.styleRun(run, style)
         return para
 
     def parseTabs(self, line):
-        print(line)
         tabs = 0
-        if '\t' in line:
-            print('Tab found')
-            while line[tabs] == '\t': tabs += 1
-        if line[0] == ' ':
-            print('Space found')
-            count = 0
-            while line[count] == ' ': count += 1
-            tabs += count // 4
-        print(tabs)
+        tabMarker = line[0] if line[0] in ' \t' else '\0'
+        while tabs < len(line) and line[tabs] == tabMarker:
+            tabs += 1
+        if tabMarker == ' ':
+            tabs //= 4
         return tabs
 
     def parseWords(self, line, tabs):
-        # if '*' not in line:
-            # return self.document.add_paragraph(line)
-        # Parse bold
         runs = []
         start, end = 0, 0
         bold = False
@@ -65,13 +60,14 @@ class MarkdownParser:
     def parseList(self, line, tabs):
         line = line[line.index('-')+2:]
         para = self.parseWords(line, tabs)
-        return self.style.setList(para)
+        return self.style.setList(para, tabs)
 
     def parseLine(self, line):
+        if line == '':
+            return
         tabs = self.parseTabs(line)
         if '# ' in line:
             return self.parseHeader(line, tabs)
         if '- ' in line:
             return self.parseList(line, tabs)
-        # otherwise, regular text object
         return self.parseWords(line, tabs)

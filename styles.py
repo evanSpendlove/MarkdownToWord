@@ -1,5 +1,5 @@
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Inches
+from docx.shared import Cm
 
 class Style:
     def __init__(self):
@@ -15,11 +15,14 @@ class Style:
         return para
 
     def setIndent(self, para, tabs):
-        para.paragraph_format.left_indent = Inches(0.5 * tabs)
+        TAB_INDENT = 0.63       # Cm
+        para.paragraph_format.left_indent = Cm(TAB_INDENT * tabs)
         return para
 
-    def setList(self, para):
-        para.style = 'List Bullet'
+    def setList(self, para, tabs):
+        listStyle = 'List Bullet'
+        # if tabs > 0: listStyle += f" {tabs + 1}"
+        para.style = listStyle
         return para
 
     def styleRun(self, run, style):
