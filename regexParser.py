@@ -9,17 +9,25 @@ class MarkdownParser:
         return
 
     def parseLine(self, line):
-        return self.parseHeader(line)
+        if self.parseHeader(line) is None:
+            self.parseContent(line)
 
     def parseContent(self, content):
-        return self.doc.add_paragraph(content)
+       para =  self.doc.add_paragraph('')
+       runs = self.parseBold(content)
+       if runs is None:
+           para.add_run(content)
+           return para
+       for r in runs:
+           para.add_run(r[0])
+           para.add_run(r[1]).bold = True
+           para.add_run(r[2])
+       return para
 
-    def parseBold(self, para, content):
+    def parseBold(self, content):
         bold = r"([^*]*)\*\*(?P<bold>[^*]+)\*\*([^*]*)"
-        match = re.findall(bold, content)
-        if match is None:
-            return None
-        return match
+        matches = re.findall(bold, content)
+        return matches if len(matches) > 0 else None
 
     def parseHeader(self, line):
         header = r"^(?P<header>#+)(?: +)(?P<content>.*)$"
@@ -38,5 +46,11 @@ tests = [
         "Hello, my **name** is **John**"
         ]
 for t in tests:
-    match = md.parseBold(None, t)
-    if match is not None: print(t, match)
+    match = md.parseContent(t)
+    if match is not None: 
+        print(t)
+        for m in match.runs:
+            if m.bold:
+                print("BOLD" + m.text)
+            else:
+                print(m.text)
