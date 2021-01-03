@@ -5,7 +5,7 @@ class Style:
     def __init__(self):
         return
 
-    def setHeader(self, para, level):
+    def header(self, para, level):
         # If Heading 1, align center
         if level > 9:
             raise Exception('Heading level cannot be greater than 9')
