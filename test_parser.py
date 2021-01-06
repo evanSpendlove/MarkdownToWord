@@ -1,5 +1,5 @@
 import unittest
-from regexParser import *
+from parser import *
 
 class TestParser(unittest.TestCase):
     @classmethod
@@ -27,7 +27,13 @@ class TestParser(unittest.TestCase):
             self.assertEqual(t[1], self.md.parseLine(t[0]))
 
     def test_parseHyperlink(self):
-        return 1
+        test_cases = [
+                ["this is a [hyperlink](www.lololol.com/?query=bob%n) ha", [['this is a ', 'hyperlink', 'www.lololol.com/?query=bob%n', ' ha']]],
+                ["Two [hyper](www.lol.com) exist [here](lol.com) woo!", [['Two ', 'hyper', 'www.lol.com', ' exist '], ['', 'here', 'lol.com', ' woo!']]],
+                ["Not a hyperlink", None]
+                ]
+        for t in test_cases:
+            self.assertEqual(t[1], self.md.parseHyperlink(t[0]))
 
     def test_parseBold(self):
         test_cases = [
