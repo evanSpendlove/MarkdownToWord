@@ -1,73 +1,97 @@
-# Structure
-# Styling rules object
-# Parser for markdown
-# Main script
-
-# TODO(evanSpendlove): Add parsing for italics
-# TODO(evanSpendlove): Add parsing for hyperlinks
-
+import re
 from docx import Document
-from styles import *
+# from styles import *
 
 class MarkdownParser:
     def __init__(self, doc = Document()):
-        self.document = doc
-        self.style = Style()
+        self.doc = doc
+        # self.style = Style()
+        return
 
-    def applyStyles(self, tabs, runs):
-        para = self.document.add_paragraph('')
-        para = self.style.setIndent(para, tabs)
-        for r in runs:
-            style, content = r[0], r[1]
-            run = para.add_run(content)
-            self.style.styleRun(run, style)
-        return para
-
-    def parseTabs(self, line):
-        tabs = 0
-        tabMarker = line[0] if line[0] in ' \t' else '\0'
-        while tabs < len(line) and line[tabs] == tabMarker:
-            tabs += 1
-        if tabMarker == ' ':
-            tabs //= 4
-        return tabs
-
-    def parseWords(self, line, tabs):
-        runs = []
-        start, end = 0, 0
-        bold = False
-        while end < len(line):
-            if line[end] == '*':
-                if line[end - 1] == '*':
-                    if not bold:
-                        bold = True
-                        runs.append(("NONE", line[start:end-1]))
-                    else:
-                        bold = False
-                        runs.append(("BOLD", line[start:end-1]))
-                    start = end + 1
-            end += 1
-        runs.append(("NONE", line[start:end]))
-        print(runs)
-        return self.applyStyles(tabs, runs)
-
-    def parseHeader(self, line, tabs):
-        level = 0
-        while line[level] == '#': level += 1
-        para = self.parseWords(line[level+1:], tabs)
-        return self.style.setHeader(para, level)
-
-    def parseList(self, line, tabs):
-        line = line[line.index('-')+2:]
-        para = self.parseWords(line, tabs)
-        return self.style.setList(para, tabs)
+    def parseIndent(self, line):
+        return -1
 
     def parseLine(self, line):
-        if line == '':
-            return
-        tabs = self.parseTabs(line)
-        if '# ' in line:
-            return self.parseHeader(line, tabs)
-        if '- ' in line:
-            return self.parseList(line, tabs)
-        return self.parseWords(line, tabs)
+        parsers = [self.parseHeader, self.parseHyperlink, self.parseBold, self.parseItalics]
+        content = []
+        for p in parsers:
+            content = p(line)
+            # print(f"Parser: {p}, Line: {line}, Content: {content}")
+            if content is not None:
+                for match in content:
+                    # print('Match: ', match)
+                    for i in range(len(match)):
+                        if type(match[i]) is not tuple:
+                            # print(match[i])
+                            match[i] = self.parseLine(match[i])
+                return content
+        # print(f"PARSING FAILED FOR: {line}")
+        return line
+
+    def parseHyperlink(self, content):
+        hyperlink = r"([^[]*)\[(?P<text>[^]]+)\]\((?P<url>[^)]+)\)([^[]*)"
+        matches = re.findall(hyperlink, content)
+        matches = [list(m) for m in matches]
+        return matches if len(matches) > 0 else None
+
+    def parseItalics(self, content):
+        italics = r"(.*)\*(?P<italics>[^*]+)\*(.*)"
+        matches = re.findall(italics, content)
+        matches = [list(m) for m in matches]
+        for m in matches:
+            m[1] = ('ITALICS', m[1])
+        return matches if len(matches) > 0 else None
+
+    def parseBold(self, content):
+        bold = r"(.*)\*\*(?P<bold>[^*]+)\*\*(.*)"
+        matches = re.findall(bold, content)
+        matches = [list(m) for m in matches]
+        for m in matches:
+            # print(m)
+            m[1] = ('BOLD', m[1])
+        return matches if len(matches) > 0 else None
+
+    def parseHeader(self, line):
+        header = r"^(?P<header>#+)(?: +)(?P<content>.*)$"
+        match = re.match(header, line)
+        if match is None:
+            return None
+        height = len(match.group('header'))
+        # content = self.parseLine([match.group('content')])
+        return [[("HEADER", height, '')], [match.group('content')]]
+        # return self.style.header(content, height)
+
+if False:
+
+    md = MarkdownParser()
+    # Header tests
+    head = [
+            "## Easy header",
+            "## Header with *italics*...",
+            "## Header with **bold** and *italics*!"
+            ]
+    for h in head:
+        match = md.parseLine(h)
+        print(match)
+    
+    tests = [
+            "**John**",
+            "Hi",
+            "Hello, my **name** is...",
+            "Hello, my **name** is **John**"
+            ]
+    for t in tests:
+        match = md.parseLine(t)
+        if match is not None: 
+            print(t)
+            print(match)
+    
+    hyper = "Hello, this is a [hyperlink](www.lololol.com/?query=bob%n) haha!"
+    hyper += hyper
+    print(hyper)
+    print(md.parseHyperlink(hyper))
+    
+    test = "This **is** super awesome **bold** text"
+    print(re.split(r"\*\*", test))
+    smartGex = r"([^*]*)\*\*(?P<bold>[^*]+)\*\*([^*]*)"
+    print(re.findall(smartGex, test))

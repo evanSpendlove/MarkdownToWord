@@ -1,4 +1,4 @@
-from parser import *
+from regexParser import *
 from styles import *
 from docx import Document
 
@@ -10,7 +10,7 @@ with open('md_test.md', 'r') as f:
     md = MarkdownParser()
     for l in lines:
         md.parseLine(l)
-    doc = md.document
+    doc = md.doc
     # paragraph = doc.add_paragraph("List 1", "List Bullet 2")
     paras = doc.paragraphs
     for p in paras:
